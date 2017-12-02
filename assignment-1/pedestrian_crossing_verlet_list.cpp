@@ -336,8 +336,6 @@ void calculate_pairwise_forces_with_verlet()
          fy = tabulated_f_per_r[tab_index] * dy;
          }
         
-        
-        
         //direct calculation of the force
         /*
         dr = sqrt(dr2); //this is very costly
