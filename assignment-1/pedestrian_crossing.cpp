@@ -15,25 +15,26 @@ No optimization
 #include <math.h>
 #include <time.h>
 
+#define CONSTANT_DENSITY 1.00
+
 struct particle_struct
 {
-	double x, y;                         //x,y coordinate of the particles
-	double fx, fy;                       //fx,fy forces acting on the particle
-	int color;                          //this is to distinguish the particles
-	int ID;                             //ID of a particle
+	double x, y;        //x,y coordinate of the particles
+	double fx, fy;      //fx,fy forces acting on the particle
+	int color;          //this is to distinguish the particles
+	int ID;             //ID of a particle
 } *particles;
 
-
-double SX, SY;           //system size x,y direction
-double SX2, SY2;         //half of the system size x,y direction
+double SX, SY;          //system size x,y direction
+double SX2, SY2;        //half of the system size x,y direction
 int N;                  //number of particles
+int T;					//number of time steps
 double dt;              //length of a single time step
 int t;                  //time - time steps so far
 FILE *moviefile;        //file to store the coordinates of the particles
 FILE *statistics_file;
 
-//these are for time keeping purposes
-//to count how many seconds the simulation ran
+//these are for time keeping purposes to count how many seconds the simulation ran
 time_t 	time_start;
 time_t 	time_end;
 
@@ -67,12 +68,10 @@ void initialize_particles()
 	double dx, dy, dr, dr2;
 	double tempx, tempy;
 
-	SX = 20.0;
-	SY = 20.0;
+	SX = sqrt(N * (1 / CONSTANT_DENSITY));
+	SY = sqrt(N * (1 / CONSTANT_DENSITY));
 	SX2 = SX / 2.0;
 	SY2 = SY / 2.0;
-
-	N = 400;
 
 	particles = (struct particle_struct *) malloc(N * sizeof(struct particle_struct));
 
@@ -82,7 +81,6 @@ void initialize_particles()
 	for (i = 0; i<N; i++)
 	{
 		particles[i].ID = i;
-
 		do
 		{
 			overlap = 0;
@@ -93,6 +91,7 @@ void initialize_particles()
 			{
 				dx = tempx - particles[j].x;
 				dy = tempy - particles[j].y;
+
 				//PBC fold back
 				if (dx >= SX2) dx -= SX;
 				if (dx<-SX2) dx += SX;
@@ -116,40 +115,11 @@ void initialize_particles()
 		particles[ii].fx = 0.0;
 		particles[ii].fy = 0.0;
 
-		if (rand() / (RAND_MAX + 1.0) < 0.5)   particles[i].color = 0;
-		else                                particles[i].color = 1;
-
+		if (rand() / (RAND_MAX + 1.0) < 0.5)
+			particles[i].color = 0;
+		else
+			particles[i].color = 1;
 		ii++;
-	}
-
-}
-
-void write_particles()
-{
-	FILE *f;
-	int i;
-
-	f = fopen("test.txt", "wt");
-	for (i = 0; i<N; i++)
-		fprintf(f, "%lf %lf\n", particles[i].x, particles[i].y);
-	fclose(f);
-}
-
-void calculate_thermal_force()
-{
-	int i;
-
-	for (i = 0; i<N; i++)
-	{
-		//rand() gives an integer 0 ... RAND_MAX
-		//rand()/(RAND_MAX+1.0) this is a double between [0,1)
-		//this is a well behaving random number
-		//gaussian distributed random number generator
-		//Numerical Recipes in C - gasdev()
-		//particles[i].fx += 3.0 * gasdev();
-
-		particles[i].fx += 5.0 * (rand() / (RAND_MAX + 1.0) - 0.5);
-		particles[i].fy += 5.0 * (rand() / (RAND_MAX + 1.0) - 0.5);
 	}
 }
 
@@ -163,6 +133,7 @@ void calculate_external_forces()
 		if (particles[i].color == 1)    particles[i].fx -= 0.5;
 	}
 }
+
 void calculate_pairwise_forces()
 {
 	int i, j;
@@ -282,18 +253,31 @@ void write_statistics()
 
 }
 
-
-int main()
+/*
+ * arg1 - N - number of particles
+ * arg2 - T - simulation time
+ * arg3 - verbose - whether to print (1) progress or not (0).
+ */
+int main(int argc, char** argv)
 {
-	printf("Simulation 1 run\n");
+	N = atoi(argv[1]);
+    T = atoi(argv[2]);
+    int verbose = atoi(argv[3]);
+
+	printf("\n Pedestrian crossing simulation. No optimization. N=%d. T=%d.\n", N, T);
 	program_timing_begin();
 
 	initialize_particles();
 
-	moviefile = fopen("results.mvi", "w");
-	statistics_file = fopen("stat.txt", "wt");
+    char movie_filename[100];
+    char stats_filename[100];
+    sprintf(movie_filename, "nop_%d_results.mvi", N);
+    sprintf(stats_filename, "nop_%d_stats.txt", N);
 
-	for (t = 0; t<100000; t++)
+	moviefile = fopen(movie_filename, "w");
+	statistics_file = fopen(stats_filename, "wt");
+
+	for (t = 0; t<T; t++)
 	{
 		calculate_pairwise_forces();
 		//calculate_thermal_force();
@@ -306,11 +290,10 @@ int main()
 
 		move_particles();
 
-
 		if (t % 100 == 0)
 			write_cmovie();
 
-		if (t % 500 == 0)
+		if (verbose && (t % 500 == 0))
 		{
 			printf("time = %d\n", t);
 			fflush(stdout);
