@@ -98,16 +98,41 @@ void clear_grid() {
         }
 }
 
-cell compute_cell(int p) {
-    int x = (int) (particles[p].x / cell_size);
-    int y = (int) (particles[p].y / cell_size);
+void compute_cell_position(int p, int *x, int *y) {
+    *x = (int) (particles[p].x / cell_size);
+    *y = (int) (particles[p].y / cell_size);
+}
 
-    return grid[x][y];
+int is_cell_out_of_bound(int x, int y) {
+    if ((x >= grid_cells_per_axis) ||
+        (x < 0) ||
+        (y >= grid_cells_per_axis) ||
+        (y < 0)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void get_neighbour_cells(int x, int y, int *ret_cells_x, int *ret_cells_y, int *ret_n) {
+    int x_offsets[5] = {0, 0, 1, 1, 1};
+    int y_offsets[5] = {0, 1, -1, 0, 1};
+    int n = 0;
+    for (int i = 0; i < 5; i++) {
+        int new_x = x + x_offsets[i];
+        int new_y = y + y_offsets[i];
+        if (is_cell_out_of_bound(new_x, new_y) == 0) {
+            ret_cells_x[n] = new_x;
+            ret_cells_y[n] = new_y;
+            n += 1;
+        }
+    }
+    *ret_n = n;
 }
 
 void add_to_grid(int p) {
-    int x = (int) (particles[p].x / cell_size);
-    int y = (int) (particles[p].y / cell_size);
+    int x, y;
+    compute_cell_position(p, &x, &y);
 
     int n = grid[x][y].n;
     grid[x][y].ps[n] = p;
@@ -177,30 +202,38 @@ void rebuild_verlet_list_grid_optimization() {
     vlist2 = (int *) realloc(vlist2, N_vlist * sizeof(int));
     rebuild_grid();
 
+    int neighbour_cells_x[5];
+    int neighbour_cells_y[5];
+    int neighbour_cell_count;
     for (i = 0; i < N; i++) {
-        cell c = compute_cell(i);
-        for (ix = 0; ix < c.n; ix++) {
-            j = c.ps[ix];
-            dx = particles[i].x - particles[j].x;
-            dy = particles[i].y - particles[j].y;
+        int cell_x, cell_y;
+        compute_cell_position(i, &cell_x, &cell_y);
+        get_neighbour_cells(cell_x, cell_y, neighbour_cells_x, neighbour_cells_y, &neighbour_cell_count);
+        for (int cell_i = 0; cell_i < neighbour_cell_count; cell_i++) {
+            cell current_cell = grid[neighbour_cells_x[cell_i]][neighbour_cells_y[cell_i]];
+            for (ix = 0; ix < current_cell.n; ix++) {
+                j = current_cell.ps[ix];
+                dx = particles[i].x - particles[j].x;
+                dy = particles[i].y - particles[j].y;
 
-            //PBC check
-            //(maybe the neighbor cell copy is closer)
-            if (dx > SX2) dx -= SX;
-            if (dx < -SX2) dx += SX;
-            if (dy > SY2) dy -= SY;
-            if (dy < -SY2) dy += SY;
+                //PBC check
+                //(maybe the neighbor cell copy is closer)
+                if (dx > SX2) dx -= SX;
+                if (dx < -SX2) dx += SX;
+                if (dy > SY2) dy -= SY;
+                if (dy < -SY2) dy += SY;
 
-            dr2 = dx * dx + dy * dy;
-            if (dr2 <= 36.0) //instead of 4*4 I will take 6*6
-            {
-                N_vlist+=2;
-                vlist1 = (int *) realloc(vlist1, N_vlist * sizeof(int));
-                vlist2 = (int *) realloc(vlist2, N_vlist * sizeof(int));
-                vlist1[N_vlist - 2] = i;
-                vlist1[N_vlist - 1] = j;
-                vlist2[N_vlist - 2] = j;
-                vlist2[N_vlist - 1] = i;
+                dr2 = dx * dx + dy * dy;
+                if (dr2 <= 36.0) //instead of 4*4 I will take 6*6
+                {
+                    N_vlist += 2;
+                    vlist1 = (int *) realloc(vlist1, N_vlist * sizeof(int));
+                    vlist2 = (int *) realloc(vlist2, N_vlist * sizeof(int));
+                    vlist1[N_vlist - 2] = i;
+                    vlist1[N_vlist - 1] = j;
+                    vlist2[N_vlist - 2] = j;
+                    vlist2[N_vlist - 1] = i;
+                }
             }
         }
     }
