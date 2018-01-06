@@ -10,6 +10,12 @@
 
 #define L_max 100
 
+#define MOVIE 0
+#define ECHO 0
+#define LOG 0
+
+#define T_samples 19
+
 int L_spin;
 int N_spin;
 int spin[L_max][L_max];
@@ -20,8 +26,11 @@ long int step;
 double M_avg,M2_avg,E_avg,E2_avg;
 long int N_rej;
 
+double T_values[T_samples] = {0.2, 0.5, 0.7, 1.0, 1.2, 1.5, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.5, 2.8, 3.0, 3.3, 3.5, 3.8};
+
 FILE *outfile;
 FILE *moviefile;
+FILE *averages;
 
 void initialize_statistics();
 void initialize_spins();
@@ -135,22 +144,27 @@ void calculate_statistics()
     
     //write out an echo for every 1000 steps
     //so the user would know the program is still running
+
     if (step%1000==0)
         {
-            printf("t= %d M = %lf\n",step,M/N_spin);
-            fprintf(outfile,"%d %lf\n",step,M/(double)N_spin);
+        	if (ECHO)
+        	{
+        		printf("t= %d M = %lf\n",step,M/N_spin);
+        	}
+            if (LOG){
+            	fprintf(outfile,"%d %lf\n",step,M/(double)N_spin);
+        	}
         }
-    
-    
+
     //M_avg = M_avg * ((double)(step)/(double)(step+1.0)) + M/ (double)(step+1.0);
-    M_avg += M/(double)N_steps_per_T;
+    M_avg += abs(M)/(double)N_steps_per_T;
     
     //M2 needs fixing because it needs to be divided by N^2
     //so does E2
     //you can just add it all together and then divide by N for M,E and by N^2 for M2,E2
-    M2_avg = M2_avg * ((double)(step)/(double)(step+1.0)) + M2/ (double)(step+1.0);
-    E_avg = E_avg * ((double)(step)/(double)(step+1.0)) + E/ (double)(step+1.0);
-    E2_avg = E2_avg * ((double)(step)/(double)(step+1.0)) + E2/ (double)(step+1.0);
+    M2_avg = abs(M2_avg) * ((double)(step)/(double)(step+1.0)) + M2/ (double)(step+1.0);
+    E_avg = abs(E_avg) * ((double)(step)/(double)(step+1.0)) + E/ (double)(step+1.0);
+    E2_avg = abs(E2_avg) * ((double)(step)/(double)(step+1.0)) + E2/ (double)(step+1.0);
     
 }
 
@@ -169,8 +183,6 @@ void running_for_fixed_T()
             //calculate the delta E that this spin flip will cause
             dE = delta_E(flipping_i,flipping_j);
             
-            //printf("dE = %d ",dE);
-            
             //Metropolis MC rejection
             if (dE<=0) {
             
@@ -186,13 +198,14 @@ void running_for_fixed_T()
                         r = rand()/(RAND_MAX+1.0);
                 
                         if (r<p) 
-				flip_spin(flipping_i,flipping_j);
-				 //this actually does the flip
-                        else N_rej++;
+							flip_spin(flipping_i,flipping_j);
+				 			//this actually does the flip
+                        else 
+                        	N_rej++;
                     }
             
             calculate_statistics();
-            if (step%10000==0) write_cmovie();
+            if (step%10000==0 && MOVIE) write_cmovie();
             
         }
     
@@ -201,8 +214,13 @@ void running_for_fixed_T()
 void write_out_results()
 {
     M_avg = M_avg / N_spin;
-    
+    E_avg = E_avg / N_spin;
+    M2_avg = M2_avg / (N_spin*N_spin);
+    E2_avg = E2_avg / (N_spin*N_spin);
+
     printf("T = %lf M = %lf Rejections = %ld\n",T,M_avg,N_rej);
+    fprintf(averages,"%lf %lf %lf %lf %lf\n", T, M_avg, M2_avg, E_avg, E2_avg);
+
 
 }
 
@@ -239,26 +257,56 @@ void write_cmovie()
 int main(int argc, const char * argv[]) {
 
     printf("Ising model simulation\n");
-    outfile = fopen("ising_data_T21.dat","wt");
-    moviefile = fopen("ising_movie_T21.dat","wb");
-    
-    srand((int)time(NULL));
-    
+    char out[256];
+    char movie[256];
+    char avr[256];
+
     // set the size of the system
     L_spin = 50;
     N_spin = L_spin * L_spin;
     
-    N_steps_per_T = 5000000;
+    N_steps_per_T = 1000000;
 
-    T = 2.5; // y fixed temperature
+    snprintf(avr, sizeof avr, "%d%s%s", L_spin, "averages", ".dat");
+	averages = fopen(avr,"wt");	
 
-    //for T
-        initialize_spins();
+
+    srand((int)time(NULL));
+
+    for (int i=0; i<T_samples; i++){
+
+    	if (LOG)
+	    {
+	    	snprintf(out, sizeof out, "./Data/%d%s%d%s", L_spin, "ising_data_", i, ".dat");
+	    	outfile = fopen(out,"wt");
+    	}
+    	if (MOVIE)
+    	{
+	    	snprintf(movie, sizeof movie, "./Data/%d%s%d%s", L_spin, "ising_movie_", i, ".dat");
+	    	moviefile = fopen(movie,"wb");
+    	}
+
+    	T=T_values[i];
+
+    	printf("\n RUNNING FOR T = %lf\n",T);
+
+    	initialize_spins();
         initialize_statistics();
         running_for_fixed_T();
         write_out_results();
 
-    fclose(outfile);
-    fclose(moviefile);
+        if (LOG)
+	    {
+	    	fclose(outfile);
+	    }
+	    if(MOVIE)
+	    {
+	    	fclose(moviefile);
+	    }
+    }
+
+    fclose(averages);
+
     return 0;
+ 
 }
