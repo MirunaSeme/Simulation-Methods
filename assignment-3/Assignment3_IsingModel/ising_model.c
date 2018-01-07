@@ -14,7 +14,7 @@
 #define ECHO 0
 #define LOG 0
 
-#define T_samples 19
+#define T_samples 53
 
 int L_spin;
 int N_spin;
@@ -26,7 +26,12 @@ long int step;
 double M_avg,M2_avg,E_avg,E2_avg;
 long int N_rej;
 
-double T_values[T_samples] = {0.2, 0.5, 0.7, 1.0, 1.2, 1.5, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.5, 2.8, 3.0, 3.3, 3.5, 3.8};
+double T_values[T_samples] = {	0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 
+							  	1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.83, 1.87, 1.9, 1.92, 1.94, 1.96, 1.98, 2.0, 
+							  	2.02, 2.04, 2.06, 2.08, 2.1, 2.13, 2.17, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 
+							  	3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0};
+
+//double T_values[T_samples] ={2.5}
 
 FILE *outfile;
 FILE *moviefile;
@@ -57,7 +62,7 @@ void initialize_spins()
     for(i=0;i<L_spin;i++)
         for(j=0;j<L_spin;j++)
             {
-            
+           /*
             if ( (rand()/(RAND_MAX+1.0)) < 0.5)
                 {
                     spin[i][j] = 1;
@@ -68,7 +73,8 @@ void initialize_spins()
                     spin[i][j] = -1;
                     neg++;
                 }
-            //spin[i][j]=-1;
+            */
+            spin[i][j]=-1;
             }
     printf("Initialization complete\n");
     printf("pos = %d neg = %d\n",pos,neg);
@@ -157,14 +163,14 @@ void calculate_statistics()
         }
 
     //M_avg = M_avg * ((double)(step)/(double)(step+1.0)) + M/ (double)(step+1.0);
-    M_avg += abs(M)/(double)N_steps_per_T;
+    M_avg += M/(double)N_steps_per_T;
     
     //M2 needs fixing because it needs to be divided by N^2
     //so does E2
     //you can just add it all together and then divide by N for M,E and by N^2 for M2,E2
-    M2_avg = abs(M2_avg) * ((double)(step)/(double)(step+1.0)) + M2/ (double)(step+1.0);
-    E_avg = abs(E_avg) * ((double)(step)/(double)(step+1.0)) + E/ (double)(step+1.0);
-    E2_avg = abs(E2_avg) * ((double)(step)/(double)(step+1.0)) + E2/ (double)(step+1.0);
+    M2_avg = M2_avg * ((double)(step)/(double)(step+1.0)) + M2/ (double)(step+1.0);
+    E_avg =  E_avg * ((double)(step)/(double)(step+1.0)) + E/ (double)(step+1.0);
+    E2_avg = E2_avg * ((double)(step)/(double)(step+1.0)) + E2/ (double)(step+1.0);
     
 }
 
@@ -265,7 +271,7 @@ int main(int argc, const char * argv[]) {
     L_spin = 50;
     N_spin = L_spin * L_spin;
     
-    N_steps_per_T = 1000000;
+    N_steps_per_T = 5000000;
 
     snprintf(avr, sizeof avr, "%d%s%s", L_spin, "averages", ".dat");
 	averages = fopen(avr,"wt");	
