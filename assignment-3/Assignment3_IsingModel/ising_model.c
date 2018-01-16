@@ -8,7 +8,7 @@
 #include <time.h>
 #include <math.h>
 
-#define L_max 150
+#define L_max 20
 
 #define MOVIE 0
 #define ECHO 0
