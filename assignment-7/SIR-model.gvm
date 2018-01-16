@@ -1,0 +1,19 @@
+<compartmentalModel>
+  <compartments>
+    <compartment id="Susceptible" x="130" y="61" isCarrier="false" color="#51b2b7" isCommuter="true" isSecondary="false" isTraveller="true"/>
+    <compartment id="Infectious" x="131" y="223" isCarrier="true" color="#ff5127" isCommuter="true" isSecondary="true" isTraveller="true"/>
+    <compartment id="Recovered" x="130" y="364" isCarrier="false" color="#89c443" isCommuter="true" isSecondary="false" isTraveller="true"/>
+  </compartments>
+  <ratioTransitions>
+    <ratioTransition target="Recovered" ratio="mu" labelPosition="0.5" source="Infectious"/>
+  </ratioTransitions>
+  <infections>
+    <infection target="Infectious" source="Susceptible">
+      <infector x="148" y="-27" ratio="beta" source="Infectious"/>
+    </infection>
+  </infections>
+  <variables>
+    <variable value="0.66" name="beta"/>
+    <variable value="0.33" name="mu"/>
+  </variables>
+</compartmentalModel>
