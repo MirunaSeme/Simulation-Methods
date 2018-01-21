@@ -8,13 +8,15 @@
 #include <time.h>
 #include <math.h>
 
-#define L_max 100
+#define L_max 20
 
 #define MOVIE 0
 #define ECHO 0
 #define LOG 0
 
 #define T_samples 53
+//#define T_samples 10
+
 
 int L_spin;
 int N_spin;
@@ -30,6 +32,8 @@ double T_values[T_samples] = {	0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
 							  	1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.83, 1.87, 1.9, 1.92, 1.94, 1.96, 1.98, 2.0, 
 							  	2.02, 2.04, 2.06, 2.08, 2.1, 2.13, 2.17, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 
 							  	3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0};
+
+//double T_values[T_samples] = { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
 //double T_values[T_samples] ={2.5}
 
@@ -268,12 +272,12 @@ int main(int argc, const char * argv[]) {
     char avr[256];
 
     // set the size of the system
-    L_spin = 50;
+    L_spin = L_max;
     N_spin = L_spin * L_spin;
     
-    N_steps_per_T = 5000000;
+    N_steps_per_T = 1000000;
 
-    snprintf(avr, sizeof avr, "%d%s%s", L_spin, "averages", ".dat");
+    snprintf(avr, sizeof avr, "%d%s%s", L_max, "averages", ".dat");
 	averages = fopen(avr,"wt");	
 
 
